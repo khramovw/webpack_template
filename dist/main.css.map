@@ -1,0 +1,1 @@
+{"version":3,"sources":["webpack:///./style.css","webpack:///./style-scss.scss"],"names":[],"mappings":"AAAA;AACA;AACA;AACA;;ACHA;AACA;AACA;AACA;AACA,iBAAiB","file":"main.css","sourcesContent":["body {\r\n    background: cornflowerblue;\r\n    padding: 0;\r\n}\r\n","main {\n  background-color: aliceblue;\n  width: 50%;\n  height: 50vh;\n  margin: 0 auto; }\n"],"sourceRoot":""}
