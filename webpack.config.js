@@ -1,8 +1,10 @@
+const webpack = require("webpack");
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const {CleanWebpackPlugin} = require('clean-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const autoprefixer = require('autoprefixer');
 const OptimizeCssAssetsWebpackPlugin = require('optimize-css-assets-webpack-plugin');
 const TerserWebpackPlugin = require('terser-webpack-plugin');
 
@@ -21,7 +23,9 @@ const optimization = () => {
     if(isProdMode) {
         config.minimizer = [
             new OptimizeCssAssetsWebpackPlugin(),
-            new TerserWebpackPlugin()
+            new TerserWebpackPlugin({
+                cache: true
+            })
         ]
     }
 
@@ -37,12 +41,20 @@ const cssLoaders = extra => {
                 reloadAll: true,
             },
         },
-        'css-loader'
+        'css-loader',
     ];
 
     if(extra) {
         loaders.push(extra)
     }
+
+    loaders.push({
+        loader: 'postcss-loader',
+        options: {
+            plugins: () => [require('autoprefixer')()],
+            sourceMap: true
+        }
+    });
 
     return loaders;
 };
@@ -83,25 +95,12 @@ module.exports = {
     mode: "development",
     devServer: {
         port: 4400,
-        hot: isDevMode
+        hot: isDevMode,
+        noInfo: false,
+        stats: 'minimal',
     },
     optimization: optimization(),
     devtool: isDevMode ? 'source-map' : '',
-    plugins: [
-        new HtmlWebpackPlugin({
-            template: './index.html'
-        }),
-        new CleanWebpackPlugin(),
-        new CopyWebpackPlugin([
-            {
-                from: path.resolve(__dirname, 'src/assets'),
-                to: path.resolve(__dirname, 'dist/assets'),
-            }
-        ]),
-        new MiniCssExtractPlugin({
-            filename: fileName('css')
-        })
-    ],
     module: {
         rules: [
             {
@@ -113,8 +112,15 @@ module.exports = {
                 use: cssLoaders('sass-loader')
             },
             {
-                test: /\.(png|jpg|jpeg|svg|webp|ico|gif)$/,
-                use: ['file-loader']
+                test: /\.(png|jpg?g|svg|webp|ico|gif)$/,
+                use: [
+                    {
+                        loader: 'file-loader',
+                        options: {
+                            name: '[name].[ext]',
+                        }
+                    }
+                ]
             },
             {
                 test: /\.(ttf|woff|woff2|eot)$/,
@@ -139,11 +145,44 @@ module.exports = {
             {
                 test: /\.ts$/,
                 exclude: /node_modules/,
-                loader: {
-                    loader: 'babel-loader',
-                    options: babelLoader('@babel/preset-typescript')
-                }
+                use: [
+                    {
+                        loader: 'cache-loader',
+                        options: {
+                            cacheDirectory: path.resolve(
+                                __dirname,
+                                'node_modules/.cache/cache-loader'
+                            ),
+                        },
+                    },
+                    {
+                        loader: 'babel-loader',
+                        options: babelLoader('@babel/preset-typescript')
+                    }
+                ]
             }
         ]
-    }
+    },
+    plugins: [
+        new HtmlWebpackPlugin({
+            template: './index.html',
+            removeComments: isProdMode
+        }),
+        new CleanWebpackPlugin(),
+        new CopyWebpackPlugin([
+            {
+                from: path.resolve(__dirname, 'src/assets'),
+                to: path.resolve(__dirname, 'dist/assets'),
+            }
+        ]),
+        new MiniCssExtractPlugin({
+            filename: fileName('css')
+        }),
+        new webpack.HashedModuleIdsPlugin({
+            hashFunction: 'md4',
+            hashDigest: 'hex',
+            hashDigestLength: 8
+        })
+    ],
+
 };
